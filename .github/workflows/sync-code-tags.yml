@@ -1,0 +1,35 @@
+name: Sync Code and Tags from Upstream
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 每天北京时间 08:00 同步
+  workflow_dispatch:      # 允许手动点击按钮触发
+
+permissions:
+  contents: write
+
+jobs:
+  sync-code-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync Upstream Code and Tags
+        run: |
+          git remote add upstream https://github.com/byJoey/cfnew.git
+          git fetch upstream --tags
+          
+          MAIN=$(git remote show upstream | awk '/HEAD branch/ {print $NF}')
+          git checkout "$MAIN" || git checkout -b "$MAIN"
+          
+          git merge --no-edit "upstream/$MAIN" || git merge --abort
+          git push origin --tags
+          git push origin "$MAIN"
